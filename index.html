@@ -289,74 +289,121 @@ print(
     </pre>
 
     <pre id="llama">
-        # Q5: Integrate LLaMA with LangChain for prompt chaining.
+        # Lab 5
+#Integrate LLaMA with LangChain for prompt chaining.
 
-# Install once per runtime:
-# !pip install -q langchain-core langchain-community transformers accelerate sentencepiece torch
-
+# !pip install -q langchain langchain_community transformers accelerate sentencepiece torch
 from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
 from langchain_community.llms import HuggingFacePipeline
 from langchain_core.prompts import PromptTemplate
-from langchain_core.runnables import RunnableSequence
+from langchain_classic.chains import LLMChain, SequentialChain
 
 model_id = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
 
 tokenizer = AutoTokenizer.from_pretrained(model_id)
-model = AutoModelForCausalLM.from_pretrained(
-    model_id,
-    device_map="auto",
-    torch_dtype="auto"
-)
+model = AutoModelForCausalLM.from_pretrained(model_id, device_map="auto", torch_dtype="auto")
 
-hf_pipe = pipeline(
+pipe = pipeline(
     "text-generation",
     model=model,
     tokenizer=tokenizer,
     max_new_tokens=60,
     temperature=0.6,
     top_p=0.9,
-    do_sample=True,
+    do_sample=True
 )
 
-llm = HuggingFacePipeline(pipeline=hf_pipe)
+llm = HuggingFacePipeline(pipeline=pipe)
 
 summary_prompt = PromptTemplate(
     input_variables=["text"],
-    template="Summarize this paragraph in one sentence:\n{text}"
+    template="Summarize this paragraph in one sentence:\n{text}\n\nSummary:"
 )
 
 question_prompt = PromptTemplate(
     input_variables=["summary"],
-    template="Based on this summary, write a simple question:\n{summary}"
+    template="Based on this summary, write a simple question:\n{summary}\n\nQuestion:"
 )
 
 answer_prompt = PromptTemplate(
     input_variables=["question"],
-    template="Give a short answer to this question:\n{question}"
+    template="Give a short answer to this question:\n{question}\n\nAnswer:"
 )
 
-# Each stage: PromptTemplate -> LLM
-summary_runnable = summary_prompt | llm
-question_runnable = question_prompt | llm
-answer_runnable = answer_prompt | llm
+summary_chain = LLMChain(llm=llm, prompt=summary_prompt, output_key="summary")
+question_chain = LLMChain(llm=llm, prompt=question_prompt, output_key="question")
+answer_chain = LLMChain(llm=llm, prompt=answer_prompt, output_key="answer")
 
-# Full chain using RunnableSequence
-overall_chain = RunnableSequence(
-    summary_runnable,
-    question_runnable,
-    answer_runnable,
+chain = SequentialChain(
+    chains=[summary_chain, question_chain, answer_chain],
+    input_variables=["text"],
+    output_variables=["summary", "question", "answer"]
 )
 
-text = "Generate a sample database schema for an e-commerce site."
+text = """Artificial Intelligence is transforming industries by automating tasks,
+enhancing decision-making, and creating new opportunities for innovation."""
 
-# Invoke the chain
-summary = summary_runnable.invoke({"text": text})
-question = question_runnable.invoke({"summary": summary})
-answer = answer_runnable.invoke({"question": question})
+result = chain({"text": text})
+print("Summary:", result["summary"].strip())
+print("Question:", result["question"].strip())
+print(" Answer:", result["answer"].strip())# Lab 5
+#Integrate LLaMA with LangChain for prompt chaining.
 
-print("Summary:", summary.strip())
-print("Question:", question.strip())
-print("Answer:", answer.strip())
+# !pip install -q langchain langchain_community transformers accelerate sentencepiece torch
+from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
+from langchain_community.llms import HuggingFacePipeline
+from langchain_core.prompts import PromptTemplate
+from langchain_classic.chains import LLMChain, SequentialChain
+
+model_id = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
+
+tokenizer = AutoTokenizer.from_pretrained(model_id)
+model = AutoModelForCausalLM.from_pretrained(model_id, device_map="auto", torch_dtype="auto")
+
+pipe = pipeline(
+    "text-generation",
+    model=model,
+    tokenizer=tokenizer,
+    max_new_tokens=60,
+    temperature=0.6,
+    top_p=0.9,
+    do_sample=True
+)
+
+llm = HuggingFacePipeline(pipeline=pipe)
+
+summary_prompt = PromptTemplate(
+    input_variables=["text"],
+    template="Summarize this paragraph in one sentence:\n{text}\n\nSummary:"
+)
+
+question_prompt = PromptTemplate(
+    input_variables=["summary"],
+    template="Based on this summary, write a simple question:\n{summary}\n\nQuestion:"
+)
+
+answer_prompt = PromptTemplate(
+    input_variables=["question"],
+    template="Give a short answer to this question:\n{question}\n\nAnswer:"
+)
+
+summary_chain = LLMChain(llm=llm, prompt=summary_prompt, output_key="summary")
+question_chain = LLMChain(llm=llm, prompt=question_prompt, output_key="question")
+answer_chain = LLMChain(llm=llm, prompt=answer_prompt, output_key="answer")
+
+chain = SequentialChain(
+    chains=[summary_chain, question_chain, answer_chain],
+    input_variables=["text"],
+    output_variables=["summary", "question", "answer"]
+)
+
+text = """Artificial Intelligence is transforming industries by automating tasks,
+enhancing decision-making, and creating new opportunities for innovation."""
+
+result = chain({"text": text})
+print("Summary:", result["summary"].strip())
+print("Question:", result["question"].strip())
+print(" Answer:", result["answer"].strip())
 
     </pre>
 
