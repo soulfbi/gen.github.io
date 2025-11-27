@@ -659,12 +659,97 @@ while True:
     print("Chatbot:", response)
     </pre>
 
+    <pre id="llama2">
+        # ✅ Step 1: Install dependencies (run once)
+!pip install -q langchain langchain_community transformers accelerate sentencepiece torch
+# ✅ Step 2: Import libraries
+from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
+from langchain_community.llms import HuggingFacePipeline
+from langchain.prompts import PromptTemplate
+from langchain.chains import LLMChain, SequentialChain
+
+# ✅ Step 3: Load open LLaMA-like model
+model_id = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
+
+tokenizer = AutoTokenizer.from_pretrained(model_id)
+model = AutoModelForCausalLM.from_pretrained(model_id, device_map="auto", torch_dtype="auto")
+
+# ✅ Step 4: Create text-generation pipeline
+pipe = pipeline(
+    "text-generation",
+    model=model,
+    tokenizer=tokenizer,
+    max_new_tokens=80,
+    temperature=0.7,
+    top_p=0.9,
+    do_sample=True
+)
+
+# ✅ Step 5: Wrap it with LangChain
+llm = HuggingFacePipeline(pipeline=pipe)
+
+# ✅ Step 6: Prompts (same as before)
+summary_prompt = PromptTemplate(
+    input_variables=["text"],
+    template=(
+        "You are an expert summarizer. Read the following passage carefully and produce a clear, "
+        "concise one-sentence summary highlighting the main idea.\n\n"
+        "Passage:\n{text}\n\nSummary:"
+    )
+)
+
+question_prompt = PromptTemplate(
+    input_variables=["summary"],
+    template=(
+        "You are a creative educator. Based on the summary below, craft one thought-provoking question "
+        "that tests understanding of the core idea.\n\n"
+        "Summary:\n{summary}\n\nQuestion:"
+    )
+)
+
+answer_prompt = PromptTemplate(
+    input_variables=["question"],
+    template=(
+        "You are a knowledgeable assistant. Give a short, direct, and informative answer to the question below.\n\n"
+        "Question:\n{question}\n\nAnswer:"
+    )
+)
+
+# ✅ Step 7: Create LLM chains
+summary_chain = LLMChain(llm=llm, prompt=summary_prompt, output_key="summary")
+question_chain = LLMChain(llm=llm, prompt=question_prompt, output_key="question")
+answer_chain = LLMChain(llm=llm, prompt=answer_prompt, output_key="answer")
+
+# ✅ Step 8: Combine chains
+chain = SequentialChain(
+    chains=[summary_chain, question_chain, answer_chain],
+    input_variables=["text"],
+    output_variables=["summary", "question", "answer"]
+)
+
+# ✅ Step 9: ✨ New Input Text ✨
+text = """
+Climate change poses one of the greatest challenges of our time, with rising temperatures,
+melting ice caps, and extreme weather events threatening ecosystems and human societies.
+To combat these effects, countries around the world are investing in renewable energy sources
+like solar, wind, and hydro power, aiming to reduce carbon emissions and build a sustainable future.
+"""
+
+# ✅ Step 10: Run the chain
+result = chain({"text": text})
+
+# ✅ Step 11: Display clean outputs
+print("📝 Summary:", result["summary"].strip())
+print("❓ Question:", result["question"].strip())
+print("💡 Answer:", result["answer"].strip())
+    </pre>
+
     <pre id="keywords">
         #Q1:To Implement Prompt Engineering a Basic prompting, b Instruction based prompt-ing.: prompt
         #Q2: To implement Advanced Prompt Engineering Techniques a Chain-of-Thought (COT) Prompting, b Role-Based Prompting.: advanced
         #Q3: To implement Evaluation and Optimization for Prompt Engineering a Prompt De-bugging, b Prompt Evaluation Metrics.: debug
         # Q4:To implement prompting with Lanchang prompt.: Lanchang
-        # Q5: Integrate LLaMA with LangChain for prompt chaining.: llama
+        # Q5: Integrate LLaMA with LangChain for prompt chaining.: llama, llama2
         #7: Chatbot: chatbot, chatbot1
          #Q6 Test LLM behavior with potentially biased or harmful prompts.: biased
         #Q9: Generate high-resolution human-like faces from random latent vectors.: human
