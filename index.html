@@ -541,50 +541,21 @@ plt.show()
     </pre>
 
     <pre id="chatbot">
-        from transformers import AutoModelForCausalLM, AutoTokenizer
-import torch
+        #!pip install langchain_google_genai
 
-# Load free model (small and runs on CPU)
-model_name = "microsoft/DialoGPT-small"
+from langchain_google_genai import ChatGoogleGenerativeAI
 
-print("⏳ Loading model...")
-
-tokenizer = AutoTokenizer.from_pretrained(model_name)
-model = AutoModelForCausalLM.from_pretrained(model_name)
-
-# Chat loop
-chat_history_ids = None
-
-print("🤖 Chatbot ready! Type 'exit' to quit.\n")
+# Initialize Gemini
+llm = ChatGoogleGenerativeAI( model='gemini-2.0-flash-lite', api_key='apikey')
 
 while True:
     user_input = input("You: ")
-    if user_input.lower() == "exit":
-        print("Chatbot: Goodbye! 👋")
+    if user_input.lower() in ["exit", "quit"]:
+        print("Chatbot: Goodbye!")
         break
-
-    # Encode user input + history
-    new_input_ids = tokenizer.encode(user_input + tokenizer.eos_token, return_tensors='pt')
-
-    if chat_history_ids is not None:
-        bot_input_ids = torch.cat([chat_history_ids, new_input_ids], dim=-1)
-    else:
-        bot_input_ids = new_input_ids
-
-    # Generate response
-    chat_history_ids = model.generate(
-        bot_input_ids,
-        max_length=200,
-        pad_token_id=tokenizer.eos_token_id,
-        do_sample=True,
-        top_k=50,
-        temperature=0.7
-    )
-
-    # Decode and print response
-    response = tokenizer.decode(chat_history_ids[:, bot_input_ids.shape[-1]:][0], skip_special_tokens=True)
-    print("Chatbot:", response)
-    print()
+    response = llm.invoke(user_input)
+    print("Chatbot:", response.content)
+    
 
     </pre>
 
